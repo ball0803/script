@@ -33,8 +33,20 @@ function update_script() {
   exit
 }
 
+function install_scaffold() {
+  msg_info "Installing Scaffold..."
+  
+  # Download and run the installation script
+  pct exec "$CTID" -- bash -c "
+    curl -fsSL https://raw.githubusercontent.com/ball0803/script/main/install/scaffold-install.sh | bash
+  "
+  
+  msg_ok "Scaffold installed successfully!"
+}
+
 start
 build_container
+install_scaffold
 description
 
 msg_ok "Completed Successfully!\n"
