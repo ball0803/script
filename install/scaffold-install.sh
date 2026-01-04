@@ -19,6 +19,10 @@ $STD sh <(curl -fsSL https://get.docker.com)
 $STD systemctl enable --now docker
 $STD usermod -aG docker root
 
+# Fix Docker permission issues
+$STD chmod 666 /var/run/docker.sock
+$STD systemctl restart docker
+
 msg_info "Installing Docker Compose"
 DOCKER_COMPOSE_VERSION=$(curl -fsSL https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
 mkdir -p /usr/local/lib/docker/cli-plugins
@@ -53,7 +57,24 @@ msg_info "Building Scaffold from source"
 $STD docker compose build
 
 msg_info "Starting Scaffold services"
-$STD docker compose up -d
+
+# Fix Neo4j health check - use simpler method
+if [ -f /opt/scaffold/docker-compose.yaml ]; then
+  # Replace complex cypher-shell health check with simple curl check
+  $STD sed -i 's|test:.*cypher-shell.*|test: ["CMD", "curl", "-f", "http://localhost:7474"]|' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's|interval: 5s|interval: 10s|' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's|retries: 5|retries: 10|' /opt/scaffold/docker-compose.yaml
+fi
+
+# Try to start services with retries
+for i in {1..3}; do
+  if $STD docker compose up -d; then
+    break
+  else
+    msg_warn "Attempt $i failed, retrying in 10 seconds..."
+    sleep 10
+  fi
+done
 
 msg_info "Configuring Nginx"
 cat <<EOF2 >/etc/nginx/conf.d/scaffold.conf
