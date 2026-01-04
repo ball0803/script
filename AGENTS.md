@@ -1,5 +1,11 @@
 # AGENTS.md
 
+## 📍 Repository Location
+
+**Raw Files URL**: `https://raw.githubusercontent.com/ball0803/script/master/`
+
+This is where all raw files are hosted for dynamic loading. All curl/wget commands in the scripts reference this URL.
+
 ## Project Overview
 Proxmox VE Helper-Scripts - Bash automation for container/VM management
 
@@ -48,6 +54,12 @@ bash -n ct/*.sh
 
 # Check dependencies
 grep -E "(apt install|docker)" install/*.sh
+
+# Test raw file URLs
+echo "Testing raw URL access:"
+curl -I -s -o /dev/null -w "%{http_code}" https://raw.githubusercontent.com/ball0803/script/master/misc/build.func
+echo ""
+```
 ```
 
 ## Notes/Gotchas
