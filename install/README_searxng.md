@@ -1,319 +1,345 @@
-# SearXNG Installation Script with MCP Integration
-
-## Quick Install
-
-To install SearXNG with MCP integration using a single command:
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/searxng.sh)"
-```
+# SearXNG Installation Script
 
 ## Overview
 
-This script installs and configures SearXNG with MCP integration within a Proxmox VE LXC container. It handles all dependencies, service configuration, and system setup required for a complete SearXNG deployment with AI agent integration.
-
-## Features
-
-- **Automated Dependency Installation**: Installs all required system packages
-- **Node.js Installation**: Sets up Node.js 20.x for MCP support
-- **MCP SearXNG**: Installs and configures MCP SearXNG server
-- **SearXNG Setup**: Clones and builds SearXNG from source
-- **Service Management**: Creates systemd services for easy management
-- **Environment Configuration**: Sets up proper configuration files
-- **Security**: Configures proper permissions and security settings
+This script installs and configures SearXNG with MCP integration inside a Proxmox VE LXC container.
 
 ## Installation Process
 
-The script performs the following steps:
+The installation script performs the following steps:
 
-1. **System Update**: Updates all packages to latest versions
-2. **Dependency Installation**: Installs Python, Node.js, build tools, and Valkey (Redis)
-3. **MCP Setup**: Installs MCP SearXNG globally via npm
-4. **User Setup**: Creates dedicated searxng user
-5. **SearXNG Clone**: Clones SearXNG repository from GitHub
-6. **Python Environment**: Creates virtual environment and installs dependencies
-7. **Configuration**: Sets up SearXNG settings with secure defaults
-8. **Systemd Services**: Creates services for SearXNG and MCP SearXNG
-9. **Service Activation**: Enables and starts all services
-10. **Cleanup**: Removes temporary files and customizes container
+1. **Add Backports Repository**: For access to newer packages
+2. **Update Package Lists**: Ensure all packages are up-to-date
+3. **Install System Dependencies**: Python, Node.js, Redis, Nginx, and other requirements
+4. **Install Node.js 20.x**: For MCP support
+5. **Install MCP SearXNG**: Official MCP server for SearXNG
+6. **Clone SearXNG Source**: Latest version from GitHub
+7. **Install Python Dependencies**: All requirements for SearXNG
+8. **Configure SearXNG**: Set ports, bindings, and Redis caching
+9. **Create Systemd Services**: For SearXNG, MCP SearXNG, and Redis
+10. **Configure Nginx**: Reverse proxy for web interface and MCP API
+11. **Configure Firewall**: Open necessary ports
+12. **Start Services**: Enable and start all services
+
+## Configuration
+
+### SearXNG Settings
+
+- **Port**: 8886 (backend)
+- **Web Interface**: 8888 (via Nginx)
+- **Bind Address**: 0.0.0.0 (accessible from container)
+- **Cache**: Redis on localhost:6379
+
+### MCP SearXNG Settings
+
+- **Port**: 3000
+- **Bind Address**: 0.0.0.0 (accessible from container)
+- **Installation**: Global npm package
+
+### Redis Settings
+
+- **Port**: 6379
+- **Bind Address**: 127.0.0.1 (localhost only)
+- **Database**: 0
+
+### Nginx Configuration
+
+- **Web Interface**: Port 8888
+- **MCP API**: Port 3000 (under /mcp path)
+- **Proxy Headers**: Properly set for SearXNG
+
+### Firewall Rules
+
+- **Allowed**: TCP ports 8888 and 3000
+- **Enabled**: UFW firewall
 
 ## Services
 
-After installation, the following services will be running:
+### Systemd Services
 
-| Service | Port | Description |
-|---------|------|-------------|
-| SearXNG Web | 8888 | SearXNG web interface |
-| MCP SearXNG | 3000 | MCP API for AI integration |
-| Valkey (Redis) | 6379 | Cache database |
+#### searxng.service
 
-## Management
+```ini
+[Unit]
+Description=SearXNG Metasearch Engine
+After=network.target redis.service
 
-### Starting/Stopping Services
+[Service]
+User=root
+Group=root
+WorkingDirectory=/usr/local/searxng/searxng-src
+Environment="PYTHONUNBUFFERED=1"
+ExecStart=/usr/bin/python3 /usr/local/searxng/searxng-src/searx/webapp.py
+Restart=always
 
-```bash
-# Start all services
-systemctl start searxng mcp-searxng
-
-# Stop all services
-systemctl stop searxng mcp-searxng
-
-# Restart services
-systemctl restart searxng mcp-searxng
-
-# Check status
-systemctl status searxng
-systemctl status mcp-searxng
-
-# View logs
-journalctl -u searxng -f
-journalctl -u mcp-searxng -f
+[Install]
+WantedBy=multi-user.target
 ```
 
-### Configuration Files
+#### mcp-searxng.service
 
-- **Main Configuration**: `/etc/searxng/settings.yml`
-- **Systemd Services**: `/etc/systemd/system/searxng.service` and `/etc/systemd/system/mcp-searxng.service`
-- **SearXNG Source**: `/usr/local/searxng/searxng-src/`
-- **Python Environment**: `/usr/local/searxng/searx-pyenv/`
+```ini
+[Unit]
+Description=MCP SearXNG Server
+After=network.target
 
-## Customization
+[Service]
+User=root
+Group=root
+ExecStart=/usr/bin/node /usr/local/lib/node_modules/@mcp/searxng/dist/index.js
+Restart=always
 
-### Editing SearXNG Settings
-
-```bash
-# Edit the main configuration
-nano /etc/searxng/settings.yml
-
-# Restart SearXNG after changes
-systemctl restart searxng
+[Install]
+WantedBy=multi-user.target
 ```
 
-### Adding Search Engines
+#### redis.service
 
-Edit `/etc/searxng/settings.yml` and add more engines to the `engines` section:
+Standard Redis service with default configuration.
 
-```yaml
-engines:
-  - name: google
-    engine: google
-    shortcut: gg
-  - name: duckduckgo
-    engine: duckduckgo
-    shortcut: ddg
-  - name: wikipedia
-    engine: wikipedia
-    shortcut: wp
-  # Add more engines here
-```
+### Nginx Configuration
 
-### MCP Configuration
+```nginx
+server {
+    listen 8888;
+    server_name _;
 
-The MCP SearXNG server is configured with:
-- **SearXNG URL**: `http://127.0.0.1:8888`
-- **MCP Port**: `3000`
-
-To customize MCP settings, edit the systemd service file:
-
-```bash
-nano /etc/systemd/system/mcp-searxng.service
-```
-
-Then reload and restart the service:
-
-```bash
-systemctl daemon-reload
-systemctl restart mcp-searxng
-```
-
-## MCP Integration
-
-### Using with MCP Clients
-
-To use SearXNG with MCP-compatible clients (like Cursor IDE):
-
-```json
-{
-  "mcpServers": {
-    "searxng-mcp": {
-      "url": "http://<CONTAINER_IP>:3000"
+    location / {
+        proxy_pass http://127.0.0.1:8886;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
     }
-  }
+
+    location /mcp {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
 }
 ```
 
-### Available MCP Tools
+## Usage
 
-The MCP SearXNG server provides:
-- **Web Search**: Perform searches across multiple engines
-- **Image Search**: Find images from various sources
-- **Video Search**: Search for videos
-- **News Search**: Get news results
+### After Installation
 
-## Requirements
+1. **Access Web Interface**: `http://<CONTAINER_IP>:8888`
+2. **Access MCP API**: `http://<CONTAINER_IP>:3000`
+3. **Configure SearXNG**: Visit web interface and configure search engines
 
-### System Requirements
+### Managing Services
 
-- **CPU**: 2+ cores (4+ recommended)
-- **RAM**: 4GB+ (8GB+ recommended)
-- **Disk**: 10GB+ (SSD recommended)
-- **Network**: Internet access for initial setup
+```bash
+# Start all services
+systemctl start searxng mcp-searxng redis
 
-### Software Dependencies
+# Stop all services
+systemctl stop searxng mcp-searxng redis
 
-- Python 3.10+
-- Node.js 20.x
-- Git
-- Build tools (gcc, python3-dev, etc.)
-- Valkey (Redis)
-- uWSGI
+# Restart all services
+systemctl restart searxng mcp-searxng redis
+
+# Check service status
+systemctl status searxng
+systemctl status mcp-searxng
+systemctl status redis
+
+# Enable services on boot
+systemctl enable searxng mcp-searxng redis
+```
+
+### Viewing Logs
+
+```bash
+# SearXNG logs
+journalctl -u searxng -f
+
+# MCP SearXNG logs
+journalctl -u mcp-searxng -f
+
+# Redis logs
+journalctl -u redis -f
+
+# Nginx logs
+tail -f /var/log/nginx/error.log
+```
+
+## Configuration Files
+
+### SearXNG Configuration
+
+- **Location**: `/usr/local/searxng/searxng-src/settings.yml`
+- **Backup**: `settings.yml.bak` (created during installation)
+- **Customization**: Edit `settings.yml` and restart service
+
+### Nginx Configuration
+
+- **Location**: `/etc/nginx/sites-available/searxng`
+- **Enabled**: Symlinked to `/etc/nginx/sites-enabled/`
+- **Test**: `nginx -t` before reloading
+
+### Firewall Configuration
+
+- **Location**: `/etc/ufw/applications.d/`
+- **Status**: `ufw status`
+- **Management**: `ufw allow/deny` commands
 
 ## Troubleshooting
 
 ### Common Issues
 
-#### 1. Node.js Installation Failures
+#### Service Fails to Start
 
-**Symptoms**: Node.js installation fails or npm permission errors
-
-**Solution**:
 ```bash
-# Manually install Node.js
-curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-apt install -y nodejs
+# Check logs
+journalctl -u searxng -f
 
-# Fix npm permissions
-npm install -g -f mcp-searxng
+# Check dependencies
+systemctl status redis
+
+# Check configuration
+nginx -t
 ```
 
-#### 2. Python Environment Issues
+#### Port Already in Use
 
-**Symptoms**: Python virtual environment fails to create
-
-**Solution**:
 ```bash
-# Check Python version
-python3 --version
+# Check listening ports
+ss -tulnp | grep 8888
+ss -tulnp | grep 3000
 
-# Manually create virtual environment
-sudo -H -u searxng python3 -m venv /usr/local/searxng/searx-pyenv
+# Find conflicting process
+lsof -i :8888
+lsof -i :3000
 ```
 
-#### 3. Port Conflicts
+#### Nginx Configuration Error
 
-**Symptoms**: Services fail to start, port already in use
-
-**Solution**:
 ```bash
-# Check which process is using the port
-netstat -tulnp | grep <PORT>
+# Test configuration
+nginx -t
 
-# Stop conflicting services
-systemctl stop <conflicting-service>
+# Check error logs
+tail -f /var/log/nginx/error.log
+
+# Reload Nginx
+systemctl reload nginx
 ```
 
-#### 4. SearXNG Configuration Errors
+#### Redis Connection Issues
 
-**Symptoms**: SearXNG fails to start with configuration errors
-
-**Solution**:
 ```bash
-# Check the configuration file
-nano /etc/searxng/settings.yml
+# Check Redis status
+systemctl status redis
 
-# Test SearXNG manually
-sudo -H -u searxng /usr/local/searxng/searx-pyenv/bin/python -m searx.webapp
+# Test Redis connection
+redis-cli ping
+
+# Check Redis logs
+journalctl -u redis -f
 ```
 
-#### 5. MCP Service Issues
-
-**Symptoms**: MCP SearXNG service fails to start
-
-**Solution**:
-```bash
-# Check service status
-systemctl status mcp-searxng
-
-# View logs
-journalctl -u mcp-searxng -f
-
-# Test MCP manually
-mcp-searxng
-```
-
-### Debugging
+### Debugging Commands
 
 ```bash
-# Enable verbose logging
-export VAR_VERBOSE=yes
+# Check Python environment
+python3 -m pip list
 
-# Check system logs
-journalctl -xe
+# Check Node.js environment
+node -v
+npm -v
 
-# Check Docker logs (if applicable)
-docker logs -f searxng
+# Check SearXNG installation
+ls -la /usr/local/searxng/searxng-src/
 
-# Test network connectivity
-ping localhost
-curl -v http://localhost:8888
+# Check MCP installation
+npm list -g --depth=0
+
+# Check network connectivity
+ping google.com
+curl -v http://localhost:8886
 curl -v http://localhost:3000
 ```
 
+## Customization
+
+### Adding Search Engines
+
+Edit `/usr/local/searxng/searxng-src/settings.yml` and add engines under the `engines` section.
+
+### Changing Ports
+
+1. Edit `/etc/nginx/sites-available/searxng`
+2. Update port numbers
+3. Test configuration: `nginx -t`
+4. Reload Nginx: `systemctl reload nginx`
+5. Update firewall: `ufw allow NEW_PORT`
+
+### Customizing SearXNG
+
+Refer to the [SearXNG documentation](https://docs.searxng.org/) for advanced configuration options.
+
 ## Security
 
-### Changing Default Settings
+### Firewall
+
+- UFW is enabled by default
+- Only ports 8888 and 3000 are open
+- Redis is bound to localhost only
+
+### Updates
 
 ```bash
-# Edit the configuration file
-nano /etc/searxng/settings.yml
-
-# Change the secret key
-SECRET_KEY=$(openssl rand -hex 32)
-
-# Restart services
+# Update SearXNG
+cd /usr/local/searxng/searxng-src
+git pull origin master
+python3 -m pip install -r requirements.txt
 systemctl restart searxng
+
+# Update MCP SearXNG
+npm update -g @mcp/searxng
+systemctl restart mcp-searxng
+
+# Update system packages
+apt update && apt upgrade -y
 ```
 
-### Securing the Web Interface
+### Best Practices
 
-Add authentication to Nginx or use SearXNG's built-in authentication:
+1. **Regular Updates**: Keep all software updated
+2. **Backup Configuration**: Regularly backup `settings.yml`
+3. **Monitor Logs**: Watch for suspicious activity
+4. **Limit Access**: Use firewall to restrict IP ranges if needed
+5. **Secure SearXNG**: Configure proper settings in `settings.yml`
 
-```yaml
-# In /etc/searxng/settings.yml
-ui:
-  static_use_hash: true
-auth:
-  enabled: true
-  # Configure authentication method
-```
+## Requirements
 
-### Firewall Configuration
+### System Requirements
 
-```bash
-# On Proxmox host, allow required ports
-iptables -A INPUT -p tcp --dport 8888 -j ACCEPT
-iptables -A INPUT -p tcp --dport 3000 -j ACCEPT
-iptables -A INPUT -p tcp --dport 6379 -j ACCEPT
-```
+- **CPU**: 2+ cores
+- **RAM**: 4GB+ recommended
+- **Disk**: 10GB+ recommended
+- **OS**: Debian 12 (installed by container script)
 
-## Performance Optimization
+### Software Dependencies
 
-### Resource Tuning
+- **Python**: 3.11+
+- **Node.js**: 20.x
+- **npm**: Latest version
+- **Redis**: Latest version
+- **Nginx**: Latest version
+- **UFW**: Firewall management
 
-```bash
-# Adjust systemd service resource limits
-cat > /etc/systemd/system/searxng.service << 'EOF'
-[Unit]
-Description=SearXNG service
-After=network.target valkey-server.service
-Wants=valkey-server.service
+## Support
 
-[Service]
-Type=simple
-User=searxng
-Group=searxng
-Environment="SEARXNG_SETTINGS_PATH=/etc/searxng/settings.yml"
-ExecStart=/usr/local/searxng/searx-pyenv/bin/python -m searx.webapp
-WorkingDirectory=/usr/local/searxng/searxng-src
-Restart=always
-# Add resource limits here
+For issues and questions, please refer to:
+- [SearXNG Documentation](https://docs.searxng.org/)
+- [MCP SearXNG GitHub](https://github.com/mcp-searxng/mcp-searxng)
+- [Node.js Documentation](https://nodejs.org/en/docs/)
+- [Redis Documentation](https://redis.io/documentation)
+- [Nginx Documentation](https://nginx.org/en/docs/)
+
+## License
+
+This script is part of the script repository and is licensed under the GPL-3.0 license.

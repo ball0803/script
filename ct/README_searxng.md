@@ -1,31 +1,29 @@
 # SearXNG Container Creation Script
 
-## Quick Install
-
-To install SearXNG with MCP integration using a single command:
-
-```bash
-bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/searxng.sh)"
-```
-
 ## Overview
 
-This script creates a Proxmox VE LXC container optimized for running SearXNG, a privacy-respecting metasearch engine, with MCP (Model Context Protocol) integration.
+This script creates a Proxmox VE LXC container optimized for SearXNG with MCP integration.
 
 ## Features
 
-- **Automated Container Creation**: Uses the community-scripts build.func framework
+- **Automatic Container Creation**: Creates a Debian 12 LXC container with proper resource allocation
+- **Network Configuration**: Supports IPv4, IPv6, VLAN, and MTU settings
+- **MCP Integration**: Includes Node.js 20.x and MCP SearXNG server
 - **Resource Management**: Configurable CPU, RAM, and disk allocation
-- **Privileged Mode**: Required for proper service management
-- **Update Functionality**: Built-in update mechanism for existing installations
-- **MCP Integration**: Includes MCP SearXNG server for AI agent integration
-- **Access Information**: Displays URLs for SearXNG web interface and MCP API
+- **Security**: Firewall configuration and secure defaults
+- **Service Management**: Systemd services for easy management
 
 ## Usage
 
 ### Basic Installation
 
 ```bash
+# Quick install with default settings
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/searxng.sh)"
+
+# Or clone and run locally
+git clone https://github.com/ball0803/script.git
+cd script
 bash ct/searxng.sh
 ```
 
@@ -39,64 +37,105 @@ VAR_CPU=4 VAR_RAM=8192 VAR_DISK=20 bash ct/searxng.sh
 VAR_CPU=2 VAR_RAM=4096 VAR_DISK=10 bash ct/searxng.sh
 ```
 
-### Update Existing Installation
+### Advanced Configuration
 
 ```bash
-bash ct/searxng.sh --update
+# Custom network settings
+VAR_NET=192.168.1.100/24 VAR_GATEWAY=192.168.1.1 bash ct/searxng.sh
+
+# IPv6 configuration
+VAR_IPV6_METHOD=auto bash ct/searxng.sh
+
+# VLAN tagging
+VAR_VLAN=100 bash ct/searxng.sh
+
+# Custom MTU
+VAR_MTU=1500 bash ct/searxng.sh
 ```
 
 ## Configuration Variables
 
-| Variable | Description | Default | Recommended Minimum |
-|----------|-------------|---------|---------------------|
-| `var_cpu` | Number of CPU cores | 2 | 2 |
-| `var_ram` | RAM in MB | 4096 | 4096 |
-| `var_disk` | Disk size in GB | 10 | 10 |
-| `var_os` | Operating system | debian | debian |
-| `var_version` | OS version | 12 | 12 |
-| `var_unprivileged` | Privileged mode (0=privileged) | 0 | 0 |
-| `var_tags` | Container tags | search;privacy;metasearch;mcp | - |
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VAR_CPU` | Number of CPU cores | 2 |
+| `VAR_RAM` | RAM in MB | 4096 |
+| `VAR_DISK` | Disk size in GB | 10 |
+| `VAR_OS` | Operating system | debian |
+| `VAR_VERSION` | OS version | 12 |
+| `VAR_NET` | IP address | dhcp |
+| `VAR_GATEWAY` | Gateway IP | auto |
+| `VAR_VLAN` | VLAN tag | (none) |
+| `VAR_MTU` | MTU size | (auto) |
+| `VAR_IPV6_METHOD` | IPv6 method | auto |
 
-## Services and Ports
+## Services
 
 After installation, the following services will be available:
 
-| Service | Port | Description |
-|---------|------|-------------|
-| SearXNG Web | 8888 | SearXNG web interface |
-| MCP SearXNG | 3000 | MCP API for AI integration |
-| Valkey (Redis) | 6379 | Cache database |
+- **SearXNG Web Interface**: `http://<CONTAINER_IP>:8888`
+- **MCP SearXNG API**: `http://<CONTAINER_IP>:3000`
+- **Redis Cache**: Port 6379
 
-## Requirements
+## Update Functionality
 
-- **Proxmox VE** 7.x or 8.x
-- **LXC Container Support**
-- **Internet Connection** for package downloads
-- **Available Resources**: 2+ CPU cores, 4GB+ RAM, 10GB+ disk
+```bash
+# Update existing installation
+bash ct/searxng.sh --update
+```
 
-## Output
+## Technical Details
 
-After successful installation, the script displays:
-- SearXNG Web URL: `http://<CONTAINER_IP>:8888`
-- MCP SearXNG API URL: `http://<CONTAINER_IP>:3000`
+### Container Specifications
+
+- **Base OS**: Debian 12
+- **Architecture**: amd64
+- **Type**: Privileged (for full functionality)
+- **Features**: Nesting, FUSE, TUN support
+
+### Software Stack
+
+- **SearXNG**: Latest version from source
+- **Node.js**: 20.x (for MCP support)
+- **MCP SearXNG**: Official MCP server
+- **Redis**: Caching backend
+- **Nginx**: Reverse proxy
+- **UFW**: Firewall management
+
+### Network Configuration
+
+- **Web Interface**: Port 8888
+- **MCP API**: Port 3000
+- **Redis**: Port 6379 (localhost only)
+- **SearXNG Backend**: Port 8886 (localhost only)
 
 ## Troubleshooting
 
 ### Common Issues
 
-1. **Insufficient Resources**: Increase CPU/RAM allocation if services fail to start
-2. **Port Conflicts**: Ensure ports 8888, 3000, 6379 are available
-3. **Network Issues**: Verify container has network connectivity
-4. **Permission Errors**: Container must be created in privileged mode
+**Container creation failed**
+- Check Proxmox VE has enough resources
+- Verify storage pool is available
+- Check network bridge configuration
+
+**Installation failed**
+- Check container has network access
+- Verify apt sources are working
+- Check disk space in container
+
+**Services not starting**
+- Check logs: `journalctl -u searxng -f`
+- Check logs: `journalctl -u mcp-searxng -f`
+- Check logs: `journalctl -u redis -f`
+
+**Port conflicts**
+- Check for other services using ports 8888 or 3000
+- Modify Nginx configuration if needed
 
 ### Debugging
 
 ```bash
-# Enable verbose mode
-VAR_VERBOSE=yes bash ct/searxng.sh
-
 # Check container status
-pct list | grep searxng
+pct status <CTID>
 
 # Enter container
 pct enter <CTID>
@@ -104,29 +143,38 @@ pct enter <CTID>
 # Check service status
 systemctl status searxng
 systemctl status mcp-searxng
+systemctl status redis
 
-# View logs
-journalctl -u searxng -f
-journalctl -u mcp-searxng -f
+# Check Nginx configuration
+nginx -t
+
+# Check firewall status
+ufw status
 ```
 
-## MCP Configuration
+## Requirements
 
-To use SearXNG with MCP-compatible clients (like Cursor IDE):
+- **Proxmox VE**: 7.x or 8.x
+- **CPU**: 2+ cores
+- **RAM**: 4GB+ recommended
+- **Disk**: 10GB+ recommended
+- **Network**: Internet access for container
 
-```json
-{
-  "mcpServers": {
-    "searxng-mcp": {
-      "url": "http://<CONTAINER_IP>:3000"
-    }
-  }
-}
-```
+## Best Practices
 
-## See Also
+1. **Resource Allocation**: Allocate at least 4GB RAM for production use
+2. **Backup**: Regularly backup the container
+3. **Updates**: Keep SearXNG updated for security
+4. **Monitoring**: Monitor resource usage and service health
+5. **Security**: Keep firewall enabled and updated
 
-- [SearXNG Installation Script README](../install/README_searxng.md)
+## Support
+
+For issues and questions, please refer to:
 - [SearXNG Documentation](https://docs.searxng.org/)
-- [MCP SearXNG Documentation](https://github.com/artificialintelligence-news/mcp-searxng)
-- [Community Scripts Documentation](https://github.com/community-scripts/ProxmoxVE)
+- [MCP SearXNG Documentation](https://github.com/mcp-searxng/mcp-searxng)
+- [Proxmox VE Documentation](https://pve.proxmox.com/pve-docs/)
+
+## License
+
+This script is part of the script repository and is licensed under the GPL-3.0 license.

@@ -1,5 +1,13 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+color
+catch_errors
+setting_up_container
+network_check
+update_os
+
+# Use our custom build.func
+source /home/camel/Desktop/Project/script/misc/build.func
 
 APP="SearXNG"
 var_tags="${var_tags:-search;privacy;metasearch;mcp}"
