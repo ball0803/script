@@ -1,5 +1,13 @@
 # Scaffold Installation Script
 
+## Quick Install
+
+To install Scaffold with a single command:
+
+```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/scaffold.sh)"
+```
+
 ## Overview
 
 This script installs and configures Scaffold from source within a Proxmox VE LXC container. It handles all dependencies, service configuration, and system setup required for a complete Scaffold deployment.
