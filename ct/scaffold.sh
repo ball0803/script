@@ -38,7 +38,7 @@ function install_scaffold() {
   
   # Download and run the installation script
   pct exec "$CTID" -- bash -c "
-    curl -fsSL https://raw.githubusercontent.com/ball0803/script/main/install/scaffold-install.sh | bash
+    curl -fsSL https://raw.githubusercontent.com/ball0803/script/refs/heads/master/install/scaffold-install.sh | bash
   "
   
   msg_ok "Scaffold installed successfully!"
