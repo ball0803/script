@@ -10,13 +10,21 @@ update_os
 
 msg_info "Installing Dependencies"
 $STD apt install -y git curl python3 python3-pip python3-venv \
-  docker.io docker-compose-plugin nginx build-essential libssl-dev \
+  nginx build-essential libssl-dev \
   zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget \
   llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
 
-msg_info "Configuring Docker"
+msg_info "Installing Docker"
+$STD sh <(curl -fsSL https://get.docker.com)
 $STD systemctl enable --now docker
 $STD usermod -aG docker root
+
+msg_info "Installing Docker Compose"
+DOCKER_COMPOSE_VERSION=$(curl -fsSL https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
+mkdir -p /usr/local/lib/docker/cli-plugins
+curl -fsSL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
+  -o /usr/local/lib/docker/cli-plugins/docker-compose
+chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 msg_info "Installing Poetry"
 $STD curl -sSL https://install.python-poetry.org | python3 -
