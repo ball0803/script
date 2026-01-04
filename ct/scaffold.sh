@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/misc/build.func)
+source /home/camel/Desktop/Project/script/misc/build.func
 
 APP="Scaffold"
 var_tags="${var_tags:-rag;ai;code-analysis;python}"
