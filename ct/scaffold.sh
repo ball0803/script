@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source /home/camel/Desktop/Project/script/misc/build.func
+source <(curl -fsSL https://raw.githubusercontent.com/ball0803/script/refs/heads/master/misc/build.func)
 
 APP="Scaffold"
 var_tags="${var_tags:-rag;ai;code-analysis;python}"

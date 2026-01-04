@@ -1,172 +1,219 @@
-# SearXNG Installation Script
+# Custom Helper Scripts for Proxmox VE
 
-## 🎉 Project Complete and Ready for Deployment
+## 🚀 Overview
 
-This project provides a complete, automated solution for installing SearXNG with MCP integration in a Proxmox VE LXC container.
+This repository provides custom helper scripts for Proxmox VE that allow you to create and manage LXC containers with your own installation scripts, independent of the community-scripts repository.
 
 ## 📦 What's Included
 
-### Core Files
+### Core System Files
 
+- **`misc/build.func`** - Custom build functions (modified from ProxmoxVE)
+- **`misc/core.func`** - Core helper functions
+- **`misc/error_handler.func`** - Error handling and validation
+- **`misc/tools.func`** - Additional utility functions
+- **`misc/api.func`** - API integration functions
+- **`misc/install.func`** - Installation helper functions
+- **`misc/alpine-install.func`** - Alpine Linux installation functions
+- **`misc/alpine-tools.func`** - Alpine Linux tools
+- **`misc/cloud-init.func`** - Cloud-init configuration
+
+### Application Scripts
+
+#### SearXNG Installation
 - **`ct/searxng.sh`** - Container creation script
 - **`install/searxng-install.sh`** - Installation script
-- **`misc/build.func`** - Custom build functions (uses our repository)
 - **`ct/headers/searxng`** - ASCII art header
+
+#### Scaffold Installation
+- **`ct/scaffold.sh`** - Container creation script
+- **`install/scaffold-install.sh`** - Installation script
 
 ### Documentation
 
-- **`ct/README_searxng.md`** - Container documentation
-- **`install/README_searxng.md`** - Installation documentation
-- **`SEARXNG_SUMMARY.md`** - Comprehensive overview
-- **`IMPLEMENTATION_SUMMARY.md`** - Technical details
-- **`VERIFICATION.md`** - Test results
-- **`FINAL_SUMMARY.md`** - Project completion summary
+- **`ct/README_searxng.md`** - SearXNG container documentation
+- **`install/README_searxng.md`** - SearXNG installation documentation
+
+## 🎯 Key Features
+
+✅ **Repository Independence** - Use your own GitHub repository for installation scripts
+✅ **Full Compatibility** - Compatible with Proxmox VE 7.x and 8.x
+✅ **Custom Resource Allocation** - Configure CPU, RAM, and disk for each container
+✅ **Network Configuration** - Support for IPv4, IPv6, VLAN, and MTU
+✅ **Service Management** - Systemd services for all components
+✅ **Security** - Firewall configuration and secure defaults
+✅ **Update Functionality** - Easy updates via `--update` flag
+✅ **Error Handling** - Comprehensive validation and error messages
+
+## 🔧 How It Works
+
+This system works by:
+
+1. **Using your repository** for installation scripts instead of community-scripts
+2. **Downloading scripts dynamically** from your GitHub repository
+3. **Maintaining compatibility** with Proxmox VE patterns and conventions
+4. **Providing full control** over the installation process
+
+### Repository Configuration
+
+The system is configured to use your repository:
+```bash
+https://raw.githubusercontent.com/ball0803/script/refs/heads/master/install/
+```
+
+To use your own repository, modify the URL in:
+- `misc/build.func` (line 3220)
+- Application container scripts
 
 ## 🚀 Quick Start
 
-### One-Command Installation
+### Install SearXNG with MCP Integration
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/searxng.sh)"
 ```
 
-### Custom Resources
+### Install Scaffold
 
 ```bash
+bash -c "$(curl -fsSL https://raw.githubusercontent.com/ball0803/script/master/ct/scaffold.sh)"
+```
+
+### Custom Resource Allocation
+
+```bash
+# High-performance configuration
 VAR_CPU=4 VAR_RAM=8192 VAR_DISK=20 bash ct/searxng.sh
+
+# Minimum configuration
+VAR_CPU=2 VAR_RAM=4096 VAR_DISK=10 bash ct/searxng.sh
 ```
 
 ### Update Existing Installation
 
 ```bash
 bash ct/searxng.sh --update
+bash ct/scaffold.sh --update
 ```
-
-## 🎯 Features
-
-✅ **Repository Independence** - Uses our own GitHub repository
-✅ **MCP Integration** - Node.js 20.x with MCP SearXNG
-✅ **Custom Resource Allocation** - Configure CPU, RAM, disk
-✅ **Network Configuration** - IPv4, IPv6, VLAN, MTU support
-✅ **Service Management** - Systemd services for all components
-✅ **Security** - UFW firewall and secure defaults
-✅ **Documentation** - Comprehensive guides and references
-✅ **Update Functionality** - Easy updates via `--update` flag
-
-## 🌐 Services After Installation
-
-- **SearXNG Web Interface**: `http://<CONTAINER_IP>:8888`
-- **MCP SearXNG API**: `http://<CONTAINER_IP>:3000`
-- **Redis Cache**: Port 6379 (localhost only)
 
 ## 📋 Configuration Options
 
 ### Resource Allocation
 
-```bash
-# Default (2 CPU, 4GB RAM, 10GB disk)
-bash ct/searxng.sh
-
-# High-performance (4 CPU, 8GB RAM, 20GB disk)
-VAR_CPU=4 VAR_RAM=8192 VAR_DISK=20 bash ct/searxng.sh
-```
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VAR_CPU` | Number of CPU cores | 2 |
+| `VAR_RAM` | Memory in MB | 4096 |
+| `VAR_DISK` | Disk size in GB | 10 |
+| `VAR_OS` | Operating system | debian |
+| `VAR_VERSION` | OS version | 12 |
 
 ### Network Configuration
 
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `VAR_NET` | IP address | dhcp |
+| `VAR_GATEWAY` | Gateway IP | (auto) |
+| `VAR_VLAN` | VLAN tag | (none) |
+| `VAR_MTU` | MTU size | (auto) |
+| `VAR_IPV6_METHOD` | IPv6 method | auto |
+
+### Example: Static IP Configuration
+
 ```bash
-# Static IP
 VAR_NET=192.168.1.100/24 VAR_GATEWAY=192.168.1.1 bash ct/searxng.sh
+```
 
-# VLAN tagging
+### Example: VLAN Configuration
+
+```bash
 VAR_VLAN=100 bash ct/searxng.sh
-
-# IPv6 configuration
-VAR_IPV6_METHOD=auto bash ct/searxng.sh
 ```
 
 ## 🔧 Technical Details
 
 ### Software Stack
 
-| Component | Version | Purpose |
-|-----------|---------|---------|
-| Debian | 12 | Base OS |
-| Python | 3.11+ | SearXNG runtime |
-| Node.js | 20.x | MCP server |
-| npm | Latest | Package management |
-| Redis | Latest | Caching |
-| Nginx | Latest | Reverse proxy |
-| UFW | Latest | Firewall |
-| SearXNG | Latest | Metasearch |
-| MCP SearXNG | Latest | MCP integration |
+| Component | Purpose |
+|-----------|---------|
+| **Proxmox VE** | Container host platform |
+| **LXC** | Container technology |
+| **Debian 12** | Default container OS |
+| **Systemd** | Service management |
+| **Nginx** | Reverse proxy |
+| **UFW** | Firewall management |
 
-### Port Configuration
+### How It Differs from Community-Scripts
 
-| Port | Service | Access |
-|------|---------|--------|
-| 8888 | Web Interface | Public |
-| 3000 | MCP API | Public |
-| 8886 | SearXNG Backend | Localhost |
-| 6379 | Redis | Localhost |
+1. **Repository Independence**: Uses your own repository instead of community-scripts
+2. **Custom Installation Scripts**: You control what gets installed
+3. **Same Patterns**: Maintains compatibility with Proxmox VE conventions
+4. **Full Control**: You have complete control over the installation process
 
 ## 📚 Documentation
 
 ### Getting Started
 
-- [SEARXNG_SUMMARY.md](SEARXNG_SUMMARY.md) - Comprehensive overview
-- [IMPLEMENTATION_SUMMARY.md](IMPLEMENTATION_SUMMARY.md) - Technical details
-- [VERIFICATION.md](VERIFICATION.md) - Test results
+- [SearXNG Container Documentation](ct/README_searxng.md)
+- [SearXNG Installation Documentation](install/README_searxng.md)
 
-### Reference Guides
+### Technical Reference
 
-- [ct/README_searxng.md](ct/README_searxng.md) - Container documentation
-- [install/README_searxng.md](install/README_searxng.md) - Installation documentation
+- [Core Functions](misc/core.func)
+- [Build Functions](misc/build.func)
+- [Error Handling](misc/error_handler.func)
 
-### Project Summary
+## 🎯 Use Cases
 
-- [FINAL_SUMMARY.md](FINAL_SUMMARY.md) - Project completion summary
+### For Developers
+- Create custom application installations
+- Test new configurations
+- Develop custom Proxmox VE scripts
 
-## 🎯 Project Status
+### For System Administrators
+- Deploy applications with your own scripts
+- Maintain control over installation process
+- Use your own repository for updates
 
-**Status**: ✅ COMPLETE AND READY FOR DEPLOYMENT
-
-**Test Results**: ✅ ALL TESTS PASSED
-
-**Completion Rate**: 100%
+### For Organizations
+- Host your own installation scripts
+- Maintain internal applications
+- Customize deployments for your needs
 
 ## 📞 Support
 
 ### Official Documentation
 
-- [SearXNG Documentation](https://docs.searxng.org/)
-- [MCP SearXNG GitHub](https://github.com/mcp-searxng/mcp-searxng)
 - [Proxmox VE Documentation](https://pve.proxmox.com/pve-docs/)
+- [LXC Documentation](https://linuxcontainers.org/)
 
 ### Community Resources
 
-- [SearXNG GitHub Issues](https://github.com/searxng/searxng/issues)
 - [Proxmox VE Forum](https://forum.proxmox.com/)
+- [Linux Containers Forum](https://discuss.linuxcontainers.org/)
 
 ## 🎉 Success Metrics
 
-- ✅ Files Created: 10
-- ✅ Lines of Code: ~1,500
-- ✅ Documentation Pages: 6
-- ✅ Tests Passed: 10/10
-- ✅ Completion Rate: 100%
+- ✅ **Files**: 19+ helper functions and scripts
+- ✅ **Lines of Code**: 13,000+ lines
+- ✅ **Compatibility**: Proxmox VE 7.x and 8.x
+- ✅ **Independence**: No dependency on external repositories
 
 ## 🚀 Next Steps
 
-1. **Test Installation**: Deploy in staging environment
-2. **Validate Services**: Verify all services work correctly
-3. **Monitor Performance**: Track resource usage
-4. **Gather Feedback**: Collect user feedback
-5. **Plan Updates**: Schedule regular maintenance
-6. **Document Issues**: Track any bugs
+1. **Customize** the repository URL to use your own GitHub repository
+2. **Create** your own installation scripts
+3. **Test** the system with your applications
+4. **Deploy** to production
+5. **Maintain** your custom scripts
+
+## 📝 License
+
+This project is based on the community-scripts Proxmox VE helper functions and is licensed under the MIT license.
 
 ---
 
-**Project**: SearXNG Installation Script
-**Status**: Complete
+**Project**: Custom Helper Scripts for Proxmox VE
+**Status**: Active Development
 **Date**: January 5, 2026
 **Repository**: https://github.com/ball0803/script
