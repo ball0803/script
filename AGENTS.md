@@ -176,11 +176,16 @@ The Proxmox API supports multiple authentication methods:
 
 **Token Authentication (Recommended):**
 ```bash
-curl -k -H "Authorization: PVEAPIToken=root@pam-{USERID}-{TOKEN}" \
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
   -H "Content-Type: application/json" \
   -X GET \
   https://{PROXMOX_IP}:8006/api2/json/nodes
 ```
+
+**Important:** The correct token format is `USER@REALM!TOKENID=UUID` where:
+- `USER@REALM` is the user ID (e.g., `opencode-agent@pam`)
+- `TOKENID` is the token name (e.g., `opencode-agent`)
+- `UUID` is the token value (e.g., `57ec941e-77ce-4fef-9949-aa28676f017b`)
 
 **Session Cookie:**
 ```bash
@@ -197,7 +202,7 @@ curl -k -H "Cookie: PVEAuthCookie={COOKIE}" \
 ### Example: Create Container via API
 
 ```bash
-curl -k -H "Authorization: PVEAPIToken=opencode-agent@pam-57ec941e-77ce-4fef-9949-aa28676f017b" \
+curl -k -H "Authorization: PVEAPIToken=opencode-agent@pam!opencode-agent=57ec941e-77ce-4fef-9949-aa28676f017b" \
   -H "Content-Type: application/json" \
   -X POST \
   -d '{
@@ -211,7 +216,52 @@ curl -k -H "Authorization: PVEAPIToken=opencode-agent@pam-57ec941e-77ce-4fef-994
     "unprivileged": 1,
     "storage": "local-lvm"
   }' \
-  https://192.168.1.114:8006/api2/json/nodes/pve/lxc
+  https://192.168.1.114:8006/api2/json/nodes/camel/lxc
+```
+
+**Note:** Replace `camel` with your actual Proxmox node name. To find your node name, use:
+```bash
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
+  -H "Content-Type: application/json" \
+  -X GET \
+  https://{PROXMOX_IP}:8006/api2/json/nodes
+```
+
+### Troubleshooting API Issues
+
+**Common Issues:**
+
+1. **Authentication Failure**: Ensure the token format is correct: `USER@REALM!TOKENID=UUID`
+2. **Permission Denied**: The token may not have sufficient privileges. Check with `pveum user token list USER@REALM`
+3. **Node Not Found**: Verify the node name exists using the nodes API endpoint
+4. **Timeout Issues**: Check network connectivity and firewall settings
+
+**Debugging Commands:**
+
+```bash
+# Check API version (basic connectivity test)
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
+  -H "Content-Type: application/json" \
+  -X GET \
+  https://{PROXMOX_IP}:8006/api2/json/version
+
+# List all nodes
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
+  -H "Content-Type: application/json" \
+  -X GET \
+  https://{PROXMOX_IP}:8006/api2/json/nodes
+
+# List all containers on a node
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
+  -H "Content-Type: application/json" \
+  -X GET \
+  https://{PROXMOX_IP}:8006/api2/json/nodes/{node}/lxc
+
+# Check container status
+curl -k -H "Authorization: PVEAPIToken=USER@REALM!TOKENID=UUID" \
+  -H "Content-Type: application/json" \
+  -X GET \
+  https://{PROXMOX_IP}:8006/api2/json/nodes/{node}/lxc/{vmid}/status/current
 ```
 
 ### API Documentation
