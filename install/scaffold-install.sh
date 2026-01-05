@@ -24,11 +24,10 @@ $STD chmod 666 /var/run/docker.sock
 $STD systemctl restart docker
 
 msg_info "Installing Docker Compose"
-DOCKER_COMPOSE_VERSION=$(curl -fsSL https://api.github.com/repos/docker/compose/releases/latest | grep '"tag_name"' | cut -d'"' -f4)
-mkdir -p /usr/local/lib/docker/cli-plugins
-curl -fsSL "https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-$(uname -s)-$(uname -m)" \
-  -o /usr/local/lib/docker/cli-plugins/docker-compose
-chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+# Install Docker Compose using the official convenience script
+$STD curl -fsSL https://get.docker.com -o get-docker.sh
+$STD sh get-docker.sh --compose-plugin
+rm -f get-docker.sh
 
 msg_info "Installing Poetry"
 $STD curl -sSL https://install.python-poetry.org | python3 -
@@ -64,25 +63,28 @@ $STD docker pull ghcr.io/beer-bears/scaffold:latest || \
 
 msg_info "Starting Scaffold services"
 
-# Fix Neo4j health check - use proper Neo4j health check
+# Configure Neo4j health check and volumes
 if [ -f /opt/scaffold/docker-compose.yaml ]; then
-  # Replace complex cypher-shell health check with proper Neo4j health check
-  # Use a simpler approach that checks if Neo4j is responding on port 7474
-  # Replace Neo4j health check with simpler version
+  msg_info "Configuring Neo4j health check"
+  
+  # Replace complex cypher-shell health check with simpler version
+  # This avoids dependency on cypher-shell and makes health checks more reliable
   $STD sed -i 's/test: \["CMD-SHELL", "cypher-shell -u.*"/test: ["CMD-SHELL", "curl -s http://localhost:7474 | grep -q \"200\""]/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/interval: 5s/interval: 10s/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
   
-    # Also ensure Neo4j has proper volume permissions
-    mkdir -p /opt/scaffold/data/neo4j
-    mkdir -p /opt/scaffold/logs/neo4j
-    $STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
-    $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
+  # Create Neo4j data and log directories with proper permissions
+  mkdir -p /opt/scaffold/data/neo4j /opt/scaffold/logs/neo4j
+  $STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
+  $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
 fi
 
-# Try to start services with retries
+# Start Scaffold services with retry logic
+msg_info "Starting Scaffold services"
 for i in {1..3}; do
+  msg_info "Starting services (attempt $i of 3)"
   if $STD docker compose up -d; then
+    msg_success "Scaffold services started successfully"
     break
   else
     msg_warn "Attempt $i failed, retrying in 10 seconds..."
