@@ -69,9 +69,9 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   # Replace complex cypher-shell health check with proper Neo4j health check
   # Use a simpler approach that checks if Neo4j is responding on port 7474
   # Replace Neo4j health check with simpler version
-  $STD sed -i 's|test: \["CMD-SHELL", "cypher-shell -u.*"|test: ["CMD-SHELL", "curl -s http://localhost:7474 | grep -q \"200\""]|' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's|interval: 5s|interval: 10s|' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's|retries: 5|retries: 20|' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's/test: \["CMD-SHELL", "cypher-shell -u.*"/test: ["CMD-SHELL", "curl -s http://localhost:7474 | grep -q \"200\""]/' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's/interval: 5s/interval: 10s/' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
   
     # Also ensure Neo4j has proper volume permissions
     mkdir -p /opt/scaffold/data/neo4j
