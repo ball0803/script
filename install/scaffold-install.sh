@@ -36,15 +36,19 @@ $STD curl -sSL https://install.python-poetry.org | python3 -
 msg_info "Setting up Scaffold"
 import_local_ip
 
-# Clone scaffold repository
-$STD git clone https://github.com/Beer-Bears/scaffold.git /opt/scaffold
+# Download scaffold configuration files
+mkdir -p /opt/scaffold
 cd /opt/scaffold
 
-# Create .env from example
+# Download docker-compose.yaml
+$STD curl -fsSL https://raw.githubusercontent.com/Beer-Bears/scaffold/refs/heads/main/docker-compose.yaml -o docker-compose.yaml
+
+# Download .env.example and create .env
+$STD curl -fsSL https://raw.githubusercontent.com/Beer-Bears/scaffold/refs/heads/main/.env.example -o .env.example
 $STD cp .env.example .env
 
 # Configure .env file
-sed -i -e "s|^PROJECT_PATH=.*|PROJECT_PATH=/opt/scaffold/codebase|" \
+sed -i -e "s|^PROJECT_PATH=.*|PROJECT_PATH=/opt/scaffold|" \
   -e "s|^CHROMA_SERVER_HOST=.*|CHROMA_SERVER_HOST=localhost|" \
   -e "s|^CHROMA_SERVER_PORT=.*|CHROMA_SERVER_PORT=8000|" \
   -e "s|^NEO4J_URI=.*|NEO4J_URI=bolt://localhost:7687|" \
@@ -53,8 +57,10 @@ sed -i -e "s|^PROJECT_PATH=.*|PROJECT_PATH=/opt/scaffold/codebase|" \
 # Create codebase directory
 mkdir -p /opt/scaffold/codebase
 
-msg_info "Building Scaffold from source"
-$STD docker compose build
+msg_info "Using pre-built Scaffold Docker image"
+# Use pre-built image instead of building from source
+$STD docker pull ghcr.io/beer-bears/scaffold:latest || \
+  $STD docker pull beerbears/scaffold:latest
 
 msg_info "Starting Scaffold services"
 
@@ -66,9 +72,11 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   $STD sed -i 's|interval: 5s|interval: 10s|' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's|retries: 5|retries: 20|' /opt/scaffold/docker-compose.yaml
   
-  # Also ensure Neo4j has proper volume permissions
-  $STD chown -R 7474:7474 /opt/scaffold/data/neo4j 2>/dev/null || true
-  $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j 2>/dev/null || true
+    # Also ensure Neo4j has proper volume permissions
+    mkdir -p /opt/scaffold/data/neo4j
+    mkdir -p /opt/scaffold/logs/neo4j
+    $STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
+    $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
 fi
 
 # Try to start services with retries
