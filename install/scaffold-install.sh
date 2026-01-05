@@ -58,12 +58,17 @@ $STD docker compose build
 
 msg_info "Starting Scaffold services"
 
-# Fix Neo4j health check - use simpler method
+# Fix Neo4j health check - use proper Neo4j health check
 if [ -f /opt/scaffold/docker-compose.yaml ]; then
-  # Replace complex cypher-shell health check with simple curl check
-  $STD sed -i 's|test:.*cypher-shell.*|test: ["CMD", "curl", "-f", "http://localhost:7474"]|' /opt/scaffold/docker-compose.yaml
+  # Replace complex cypher-shell health check with proper Neo4j health check
+  # Use a simpler approach that checks if Neo4j is responding on port 7474
+  $STD sed -i '/test:.*cypher-shell.*/c\\    test: ["CMD-SHELL", "curl -s -o /dev/null -w \"%{http_code}\" http://localhost:7474 | grep -q \"200\""]' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's|interval: 5s|interval: 10s|' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's|retries: 5|retries: 10|' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's|retries: 5|retries: 20|' /opt/scaffold/docker-compose.yaml
+  
+  # Also ensure Neo4j has proper volume permissions
+  $STD chown -R 7474:7474 /opt/scaffold/data/neo4j 2>/dev/null || true
+  $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j 2>/dev/null || true
 fi
 
 # Try to start services with retries
@@ -72,6 +77,10 @@ for i in {1..3}; do
     break
   else
     msg_warn "Attempt $i failed, retrying in 10 seconds..."
+    msg_info "Checking container status..."
+    $STD docker compose ps
+    msg_info "Checking logs for neo4j container..."
+    $STD docker compose logs neo4j 2>/dev/null || true
     sleep 10
   fi
 done
