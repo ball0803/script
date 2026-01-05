@@ -12,7 +12,7 @@ msg_info "Installing Dependencies"
 $STD apt install -y git curl python3 python3-pip python3-venv \
   nginx build-essential libssl-dev \
   zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget \
-  llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev
+  libffi-dev
 
 msg_info "Installing Docker"
 $STD sh <(curl -fsSL https://get.docker.com)
