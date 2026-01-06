@@ -74,6 +74,10 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/timeout: 5s/timeout: 10s/' /opt/scaffold/docker-compose.yaml
   
+  # Replace build section with image reference for scaffold-mcp service
+  $STD sed -i '/^    build:/,/^    context:/d' /opt/scaffold/docker-compose.yaml
+  $STD sed -i '/^  scaffold-mcp:/a\    image: ghcr.io/beer-bears/scaffold:latest' /opt/scaffold/docker-compose.yaml
+  
   # Create Neo4j data and log directories with proper permissions
   mkdir -p /opt/scaffold/data/neo4j /opt/scaffold/logs/neo4j
   $STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
