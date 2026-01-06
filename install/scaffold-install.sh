@@ -1,12 +1,23 @@
 #!/usr/bin/env bash
 
-source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
-color
-verb_ip6
-catch_errors
-setting_up_container
-network_check
-update_os
+# Source function library if FUNCTIONS_FILE_PATH is available
+if [ -n "$FUNCTIONS_FILE_PATH" ]; then
+  source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
+  color
+  verb_ip6
+  catch_errors
+  setting_up_container
+  network_check
+  update_os
+else
+  # Fallback for direct execution without FUNCTIONS_FILE_PATH
+  echo "FUNCTIONS_FILE_PATH not set, using basic functions"
+  msg_info() { echo "$1"; }
+  msg_success() { echo "✅ $1"; }
+  msg_warn() { echo "⚠️  $1" >&2; }
+  msg_error() { echo "❌ $1" >&2; }
+  msg_ok() { echo "✅ $1"; }
+fi
 
 msg_info "Installing Dependencies"
 $STD apt install -y git curl python3 python3-pip python3-venv \
