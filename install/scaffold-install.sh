@@ -69,7 +69,7 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   
   # Replace complex cypher-shell health check with simpler version
   # This avoids dependency on cypher-shell and makes health checks more reliable
-  $STD sed -i 's/test: \["CMD-SHELL", "cypher-shell -u.*"/test: ["CMD-SHELL", "curl -s http://localhost:7474 | grep -q \"200\""]/' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's/test: \["CMD-SHELL", "cypher-shell.*"/test: ["CMD-SHELL", "curl -s http:\/\/localhost:7474 | grep -q \"200\""]/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/interval: 5s/interval: 10s/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
   
