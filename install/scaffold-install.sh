@@ -84,22 +84,22 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
 fi
 
-# Start Scaffold services with retry logic
-msg_info "Starting Scaffold services"
-for i in {1..3}; do
-  msg_info "Starting services (attempt $i of 3)"
-  if $STD docker compose up -d; then
-    msg_success "Scaffold services started successfully"
-    break
-  else
-    msg_warn "Attempt $i failed, retrying in 10 seconds..."
-    msg_info "Checking container status..."
-    $STD docker compose ps
-    msg_info "Checking logs for neo4j container..."
-    $STD docker compose logs neo4j 2>/dev/null || true
-    sleep 10
-  fi
-done
+  # Start Scaffold services with retry logic
+  echo "Starting Scaffold services"
+  for i in {1..3}; do
+    echo "Starting services (attempt $i of 3)"
+    if $STD docker compose up -d; then
+      echo "Scaffold services started successfully"
+      break
+    else
+      echo "Attempt $i failed, retrying in 10 seconds..."
+      echo "Checking container status..."
+      $STD docker compose ps
+      echo "Checking logs for neo4j container..."
+      $STD docker compose logs neo4j 2>/dev/null || true
+      sleep 10
+    fi
+  done
 
 msg_info "Configuring Nginx"
 cat <<EOF2 >/etc/nginx/conf.d/scaffold.conf
