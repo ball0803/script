@@ -69,9 +69,10 @@ if [ -f /opt/scaffold/docker-compose.yaml ]; then
   
   # Replace complex cypher-shell health check with simpler version
   # This avoids dependency on cypher-shell and makes health checks more reliable
-  $STD sed -i 's/test: \["CMD-SHELL", "cypher-shell.*"/test: ["CMD-SHELL", "curl -s http:\/\/localhost:7474 | grep -q \"200\""]/' /opt/scaffold/docker-compose.yaml
+  $STD sed -i '/cypher-shell/c\      test: ["CMD-SHELL", "curl -s --fail http:\/\/localhost:7474 || exit 1"]' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/interval: 5s/interval: 10s/' /opt/scaffold/docker-compose.yaml
   $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
+  $STD sed -i 's/timeout: 5s/timeout: 10s/' /opt/scaffold/docker-compose.yaml
   
   # Create Neo4j data and log directories with proper permissions
   mkdir -p /opt/scaffold/data/neo4j /opt/scaffold/logs/neo4j
