@@ -44,7 +44,17 @@ msg_info "Installing Poetry"
 $STD curl -sSL https://install.python-poetry.org | python3 -
 
 msg_info "Setting up Scaffold"
-import_local_ip
+
+# Import local IP if available, otherwise get it directly
+if command -v import_local_ip >/dev/null 2>&1; then
+  import_local_ip
+else
+  # Fallback: get IP directly
+  LOCAL_IP=$(hostname -I | awk '{print $1}')
+  if [ -z "$LOCAL_IP" ]; then
+    LOCAL_IP="localhost"
+  fi
+fi
 
 # Download scaffold configuration files
 mkdir -p /opt/scaffold
