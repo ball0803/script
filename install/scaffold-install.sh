@@ -139,18 +139,18 @@ $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffol
 
   # Start Scaffold services with retry logic
   echo "Starting Scaffold services"
-  for i in {1..3}; do
-    echo "Starting services (attempt $i of 3)"
+  for i in {1..5}; do
+    echo "Starting services (attempt $i of 5)"
     if $STD docker compose up -d; then
       echo "Scaffold services started successfully"
       break
     else
-      echo "Attempt $i failed, retrying in 10 seconds..."
+      echo "Attempt $i failed, retrying in 15 seconds..."
       echo "Checking container status..."
-      $STD docker compose ps
+      $STD docker compose ps 2>/dev/null || true
       echo "Checking logs for neo4j container..."
       $STD docker compose logs neo4j 2>/dev/null || true
-      sleep 10
+      sleep 15
     fi
   done
 
