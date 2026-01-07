@@ -79,8 +79,19 @@ mkdir -p /opt/scaffold/codebase
 
 msg_info "Using pre-built Scaffold Docker image"
 # Use pre-built image instead of building from source
-$STD docker pull ghcr.io/beer-bears/scaffold:latest || \
-  $STD docker pull beerbears/scaffold:latest
+# Try multiple times with retries for network reliability
+for attempt in {1..3}; do
+  if $STD docker pull ghcr.io/beer-bears/scaffold:latest; then
+    break
+  elif $STD docker pull beerbears/scaffold:latest; then
+    break
+  else
+    if [ $attempt -lt 3 ]; then
+      msg_warn "Docker pull failed (attempt $attempt/3), retrying in 10 seconds..."
+      sleep 10
+    fi
+  fi
+done
 
 msg_info "Starting Scaffold services"
 
