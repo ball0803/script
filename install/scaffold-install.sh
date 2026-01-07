@@ -128,37 +128,7 @@ sed -i -e "s|^PROJECT_PATH=.*|PROJECT_PATH=/opt/scaffold|" \
 # Create codebase directory
 mkdir -p /opt/scaffold/codebase
 
-msg_info "Using pre-built Scaffold Docker image"
-# Use pre-built image instead of building from source
-# Try multiple times with retries for network reliability
-for attempt in {1..3}; do
-  if $STD docker pull ghcr.io/beer-bears/scaffold:latest; then
-    break
-  elif $STD docker pull beerbears/scaffold:latest; then
-    break
-  else
-    if [ $attempt -lt 3 ]; then
-      msg_warn "Docker pull failed (attempt $attempt/3), retrying in 10 seconds..."
-      sleep 10
-    fi
-  fi
-done
-
-# Check if image was pulled successfully
-if ! $STD docker images ghcr.io/beer-bears/scaffold:latest >/dev/null 2>&1 && \
-   ! $STD docker images beerbears/scaffold:latest >/dev/null 2>&1; then
-  msg_error "Failed to pull Scaffold Docker image after 3 attempts"
-  msg_info "Trying alternative: pulling from Docker Hub (beerbears/scaffold:latest)"
-  for attempt in {1..3}; do
-    if $STD docker pull docker.io/library/scaffold:latest; then
-      msg_success "Successfully pulled scaffold:latest from Docker Hub"
-      break
-    elif [ $attempt -lt 3 ]; then
-      msg_warn "Docker pull failed (attempt $attempt/3), retrying in 10 seconds..."
-      sleep 10
-    fi
-  done
-fi
+msg_info "Docker Compose will pull all required images automatically"
 
 msg_info "Starting Scaffold services"
 
