@@ -95,8 +95,7 @@ services:
     environment:
       - NEO4J_server_config_strict__validation_enabled=false
       - NEO4J_AUTH=none
-      - NEO4J_USER=${NEO4J_USER:-neo4j}
-      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-password}
+      - NEO4J_dbms_security_auth__enabled=false
     volumes:
       - neo4j_data:/data
     ports:
