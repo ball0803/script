@@ -60,8 +60,59 @@ fi
 mkdir -p /opt/scaffold
 cd /opt/scaffold
 
-# Download docker-compose.yaml
-$STD curl -fsSL https://raw.githubusercontent.com/Beer-Bears/scaffold/refs/heads/main/docker-compose.yaml -o docker-compose.yaml
+# Create docker-compose.yaml with correct image references
+cat > docker-compose.yaml <<'EOF'
+version: '3.8'
+services:
+  scaffold-mcp:
+    image: ghcr.io/beer-bears/scaffold:latest
+    container_name: scaffold-mcp-prod
+    env_file:
+      - .env
+    tty: true
+    ports:
+      - "8000:8080"
+    depends_on:
+      - neo4j
+    volumes:
+      - ./codebase:/app/codebase
+
+  chromadb:
+    image: chromadb/chroma:1.0.13
+    container_name: scaffold-chromadb
+    restart: unless-stopped
+    environment:
+      - CHROMA_SERVER_HOST=0.0.0.0
+      - CHROMA_SERVER_HTTP_PORT=8000
+      - ALLOW_RESET=TRUE
+    volumes:
+      - chroma_data:/data
+
+  neo4j:
+    image: neo4j:5
+    container_name: scaffold-neo4j
+    restart: unless-stopped
+    environment:
+      - NEO4J_server_config_strict__validation_enabled=false
+      - NEO4J_AUTH=none
+      - NEO4J_USER=${NEO4J_USER:-neo4j}
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:-password}
+    volumes:
+      - neo4j_data:/data
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -s --fail http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 20
+      start_period: 10s
+
+volumes:
+  chroma_data:
+  neo4j_data:
+EOF
 
 # Download .env.example and create .env
 $STD curl -fsSL https://raw.githubusercontent.com/Beer-Bears/scaffold/refs/heads/main/.env.example -o .env.example
@@ -111,26 +162,10 @@ fi
 
 msg_info "Starting Scaffold services"
 
-# Configure Neo4j health check and volumes
-if [ -f /opt/scaffold/docker-compose.yaml ]; then
-  msg_info "Configuring Neo4j health check"
-  
-  # Replace complex cypher-shell health check with simpler version
-  # This avoids dependency on cypher-shell and makes health checks more reliable
-  $STD sed -i '/cypher-shell/c\      test: ["CMD-SHELL", "curl -s --fail http:\/\/localhost:7474 || exit 1"]' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's/interval: 5s/interval: 10s/' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's/retries: 5/retries: 20/' /opt/scaffold/docker-compose.yaml
-  $STD sed -i 's/timeout: 5s/timeout: 10s/' /opt/scaffold/docker-compose.yaml
-  
-  # Replace build section with image reference for scaffold-mcp service
-  $STD sed -i '/^    build:/,/^    context:/d' /opt/scaffold/docker-compose.yaml
-  $STD sed -i '/^  scaffold-mcp:/a\    image: ghcr.io/beer-bears/scaffold:latest' /opt/scaffold/docker-compose.yaml
-  
-  # Create Neo4j data and log directories with proper permissions
-  mkdir -p /opt/scaffold/data/neo4j /opt/scaffold/logs/neo4j
-  $STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
-  $STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
-fi
+# Create Neo4j data and log directories with proper permissions
+mkdir -p /opt/scaffold/data/neo4j /opt/scaffold/logs/neo4j
+$STD chown -R 7474:7474 /opt/scaffold/data/neo4j || echo "Directory /opt/scaffold/data/neo4j not found, skipping chown"
+$STD chown -R 7474:7474 /opt/scaffold/logs/neo4j || echo "Directory /opt/scaffold/logs/neo4j not found, skipping chown"
 
   # Start Scaffold services with retry logic
   echo "Starting Scaffold services"
