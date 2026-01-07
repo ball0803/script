@@ -93,6 +93,22 @@ for attempt in {1..3}; do
   fi
 done
 
+# Check if image was pulled successfully
+if ! $STD docker images ghcr.io/beer-bears/scaffold:latest >/dev/null 2>&1 && \
+   ! $STD docker images beerbears/scaffold:latest >/dev/null 2>&1; then
+  msg_error "Failed to pull Scaffold Docker image after 3 attempts"
+  msg_info "Trying alternative: pulling from Docker Hub (beerbears/scaffold:latest)"
+  for attempt in {1..3}; do
+    if $STD docker pull docker.io/library/scaffold:latest; then
+      msg_success "Successfully pulled scaffold:latest from Docker Hub"
+      break
+    elif [ $attempt -lt 3 ]; then
+      msg_warn "Docker pull failed (attempt $attempt/3), retrying in 10 seconds..."
+      sleep 10
+    fi
+  done
+fi
+
 msg_info "Starting Scaffold services"
 
 # Configure Neo4j health check and volumes
